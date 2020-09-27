@@ -1,94 +1,127 @@
-const numbers = document.querySelectorAll('.number');
-const operations = document.querySelectorAll('.operator');
-const clearBtns = document.querySelectorAll('.clear-btn');
-const decimalBtn = document.getElementById('decimal');
-const result = document.getElementById('result');
-const display = document.getElementById('display');
-let MemoryCurrentNumber = 0;
-let MemoryNewNumber = false;
-let MemoryPendingOperation = '';
-
-for (var i = 0; i < numbers.length; i++) {
-  var number = numbers[i];
-  number.addEventListener('click', function (e) {
-    numberPress(e.target.textContent);
-  });
+class Calculator {
+  constructor (previousOperandTextElement, currentOperandTextElement){
+    this.previousOperandTextElement=previousOperandTextElement
+    this.currentOperandTextElement=currentOperandTextElement
+    this.readyToReset=false
+    this.clear()
+  }
 }
 
-for (var i = 0; i < operations.length; i++) {
-  var operationBtn = operations[i];
-  operationBtn.addEventListener('click', function (e) {
-    operationPress(e.target.textContent);
-  });
+const numbersButtons = document.querySelectorAll('[data-number]');
+const operationButtons = document.querySelectorAll('[data-operation]');
+const equalsButtons = document.querySelector('.[data-equals]');
+const deleteButton = document.querySelector('[data-delete]');
+const allClearButton = document.querySelector('[data-all-clear]');
+const previousOperandTextElement = document.querySelector('[data-previous-operand]');
+const currentOperandTextElement = document.querySelector('[data-current-operand]');
+const calculator=new calculator(previousOperandTextElement,currentOperandTextElement)
+numbersButtons.forEach (button => {
+  button.addEventListener ('click',()=>{
+    calculator.appendNumber (button.innerText)
+    calculator.updateDisplay()
+  })
+})
+
+operationButtons.forEach (button => {
+  button.addEventListener ('click', () =>{
+  calculator.chooseOperation (button.innerText)
+  calculator.updateDisplay()
+  })
+})
+
+equalsButtons.addEventListener ('click', button=> {
+  calculator.compute ()
+  calculator.updateDisplay ()
+})
+
+clear () {
+  this.currentOperand =''
+  this.previousOperand=''
+  this.operation=undefined
+  this.readyToReset=false
 }
 
-for (var i = 0; i < clearBtns.length; i++) {
-  var clearBtn = clearBtns[i];
-  clearBtn.addEventListener('click', function (e) {
-    clear(e.target.textContent);
-  });
+delete () {
+  this.currentOperand=this.currentOperand.toString().slice(0,-1)
 }
 
-decimalBtn.addEventListener('click', decimal);
+appendNumber(number) {
+  if (number === '.' && this.currentOperand.includes('.')) return;
+  this.currentOperand = this.currentOperand.toString() + number.toString();
+}
 
-function numberPress(number) {
-  if (MemoryNewNumber) {
-    display.value = number;
-    MemoryNewNumber = false;
+chooseOperation(operation) {
+  if (this.currentOperand === '') return;
+  if (this.currentOperand !== '' && this.previousOperand !== '') {
+    this.compute();
+  }
+  this.operation = operation;
+  this.previousOperand = this.currentOperand;
+  this.currentOperand = '';
+}
+
+compute() {
+  let computation;
+  const prev = parseFloat(this.previousOperand);
+  const current = parseFloat(this.currentOperand);
+  if (isNaN(prev) || isNaN(current)) return;
+  switch (this.operation) {
+    case '+':
+      computation = prev + current;
+      break
+    case '-':
+      computation = prev - current;
+      break
+    case '*':
+      computation = prev * current;
+      break
+    case '÷':
+      computation = prev / current;
+      break
+    default:
+      return;
+  }
+  this.readyToReset = true;
+  this.currentOperand = computation;
+  this.operation = undefined;
+  this.previousOperand = '';
+}
+
+allClearButton.addEventListener ('click',button => {
+  calculator.clear ()
+  calculator.updateDisplay ()
+})
+
+deleteButton.addEventListener ('click',button => {
+  calculator.clear ()
+  calculator.updateDisplay ()
+})
+
+getDisplayNumber(number) {
+  const stringNumber = number.toString()
+  const integerDigits = parseFloat(stringNumber.split('.')[0])
+  const decimalDigits = stringNumber.split('.')[1]
+  let integerDisplay
+  if (isNaN(integerDigits)) {
+    integerDisplay = ''
   } else {
-    if (display.value === '0') {
-      display.value = number;
-    } else {
-      display.value += number;
-    }
+    integerDisplay = integerDigits.toLocaleString('en', { maximumFractionDigits: 0 })
   }
-}
-
-function operationPress(op) {
-  let localOperationMemory = display.value;
-
-  if (MemoryNewNumber && MemoryPendingOperation !== '=') {
-    display.value = MemoryCurrentNumber;
+  if (decimalDigits != null) {
+    return `${integerDisplay}.${decimalDigits}`
   } else {
-    MemoryNewNumber = true;
-    if (MemoryPendingOperation === '+') {
-      MemoryCurrentNumber += +localOperationMemory;
-    } else if (MemoryPendingOperation === '-') {
-      MemoryCurrentNumber -= +localOperationMemory;
-    } else if (MemoryPendingOperation === '*') {
-      MemoryCurrentNumber *= +localOperationMemory;
-    } else if (MemoryPendingOperation === '/') {
-      MemoryCurrentNumber /= +localOperationMemory;
-    } else {
-      MemoryCurrentNumber = +localOperationMemory;
-    }
-    display.value = MemoryCurrentNumber;
-    MemoryPendingOperation = op;
+    return integerDisplay
   }
 }
 
-function decimal(argument) {
-  let localDecimalMemory = display.value;
-
-  if (MemoryNewNumber) {
-    localDecimalMemory = '0.';
-    MemoryNewNumber = false;
+updateDisplay() {
+  this.currentOperandTextElement.innerText =
+    this.getDisplayNumber(this.currentOperand)
+  if (this.operation != null) {
+    this.previousOperandTextElement.innerText =
+      `${this.getDisplayNumber(this.previousOperand)} ${this.operation}`
   } else {
-    if (localDecimalMemory.indexOf('.') === -1) {
-      localDecimalMemory += '.';
-    }
+    this.previousOperandTextElement.innerText = ''
   }
-  display.value = localDecimalMemory;
 }
-
-function clear(id) {
-  if (id === 'ce') {
-    display.value = '0';
-    MemoryNewNumber = true;
-  } else if (id === 'c') {
-    display.value = '0';
-    MemoryNewNumber = true;
-    MemoryCurrentNumber = 0;
-    MemoryPendingOperation = '';
-  }
 }
